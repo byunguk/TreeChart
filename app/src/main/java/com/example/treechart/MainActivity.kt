@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
     private val childViews4 = intArrayOf(1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 2, 1, 1)
 
     private val array = arrayOf(childViews1, childViews2, childViews3, childViews4)
-    var selectedChildView = 0
+    private var selectedChildView = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setViews()
