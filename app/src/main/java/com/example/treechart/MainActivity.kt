@@ -1,15 +1,13 @@
 package com.example.treechart
 
-import android.graphics.Color
+import android.content.pm.ActivityInfo
 import android.os.Bundle
-import android.view.ViewGroup
-import android.widget.LinearLayout
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import java.util.Random
+import androidx.lifecycle.ViewModelProvider
 
-
+private const val FRAME_LAYOUT_ID = 1000
 class MainActivity : AppCompatActivity() {
-    private lateinit var rootLayout: LinearLayout
     // test case 1
     private val childViews1 = intArrayOf(3, 2, 1, 1, 1, 1, 1)
     // test case 2
@@ -20,112 +18,61 @@ class MainActivity : AppCompatActivity() {
     private val childViews4 = intArrayOf(1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 2, 1, 1)
 
     private val array = arrayOf(childViews1, childViews2, childViews3, childViews4)
-    private var selectedChildView = 0
+    private var selectedChildViewIndex = 0
+
+    private lateinit var frameLayout: FrameLayout
+    private lateinit var viewModel: MainViewModel
+    private val hierarchyFragment = HierarchyFragment()
+    private val plainFragment = PlainFragment()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setViews()
-        createTreeChart(array[selectedChildView], rootLayout)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        setFragments()
+        setViewModel()
     }
 
-    private fun setViews() {
-        rootLayout = LinearLayout(this)
-        rootLayout.orientation = LinearLayout.HORIZONTAL
-        rootLayout.setOnClickListener {
-            selectedChildView++
-            if (selectedChildView >= array.size) {
-                selectedChildView = 0
-            }
-            rootLayout.removeAllViews()
-            createTreeChart(array[selectedChildView], rootLayout)
-        }
-        setContentView(rootLayout)
-    }
+    private fun setFragments() {
+        frameLayout = FrameLayout(this)
+        frameLayout.id = FRAME_LAYOUT_ID
+        setContentView(frameLayout)
 
-    /**
-     * create Tree Chart with child size and parent view
-     * @param children: array of size of child views
-     * @param parentView: parent view
-     */
-    private fun createTreeChart(children: IntArray, parentView: ViewGroup) {
-        val midIndex = findMidIndex(children)
-        val firstArray = children.sliceArray(0..midIndex)
-        val sumOfFirstArray = firstArray.sum()
-        val secondArray = children.sliceArray(midIndex+1..<children.size)
-        val sumOfSecondArray = secondArray.sum()
-        val orientation = if ((parentView as? LinearLayout)?.orientation == LinearLayout.VERTICAL) {
-            LinearLayout.HORIZONTAL
-        } else {
-            LinearLayout.VERTICAL
-        }
-
-        val firstView = LinearLayout(parentView.context)
-        firstView.setBackgroundColor(getRandomColor())
-        firstView.orientation = orientation
-        if (orientation == LinearLayout.VERTICAL) {
-            firstView.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                sumOfFirstArray.toFloat()
-            )
-        } else {
-            firstView.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                sumOfFirstArray.toFloat()
-            )
-        }
-        parentView.addView(firstView)
-        if (firstArray.size > 1) {
-            createTreeChart(firstArray, firstView)
-        }
-
-        val secondView = LinearLayout(parentView.context)
-        secondView.setBackgroundColor(getRandomColor())
-        secondView.orientation = orientation
-        if (orientation == LinearLayout.VERTICAL) {
-            secondView.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                sumOfSecondArray.toFloat()
-            )
-        } else {
-            secondView.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                sumOfSecondArray.toFloat()
-            )
-        }
-        parentView.addView(secondView)
-        if (secondArray.size > 1) {
-            createTreeChart(secondArray, secondView)
+        val fragment = supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)
+        if (fragment == null) {
+            val fragTransaction = supportFragmentManager.beginTransaction()
+            val mainFragment = MainFragment()
+            fragTransaction.add(FRAME_LAYOUT_ID, mainFragment, MAIN_FRAGMENT_TAG)
+            fragTransaction.commit()
         }
     }
 
-    /**
-     * get random color
-     * @return Integer representation of color
-     */
-    private fun getRandomColor(): Int {
-        val rnd = Random()
-        return Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256))
-    }
-
-    /**
-     * find index when sum reaches around the half of sum of entire array.
-     * @param array input array of integers
-     * @return index
-     */
-    private fun findMidIndex(array: IntArray): Int {
-        if (array.size > 2) {
-            val halfOfTotal = array.sum() / 2
-            var sum = 0
-            array.forEachIndexed { index, i ->
-                sum += i
-                if (sum > halfOfTotal) {
-                    return index - 1
+    private fun setViewModel() {
+        viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        viewModel.selectedFragmentLiveData.observe(this) {
+            when (it) {
+                HIERARCHY_FRAGMENT_TAG -> {
+                    supportFragmentManager.beginTransaction()
+                        .replace(FRAME_LAYOUT_ID, hierarchyFragment, HIERARCHY_FRAGMENT_TAG)
+                        .addToBackStack(null)
+                        .commit()
+                    viewModel.setArray(array[0])
                 }
+                PLAIN_FRAGMENT_TAG -> {
+                    supportFragmentManager.beginTransaction()
+                        .replace(FRAME_LAYOUT_ID, plainFragment, PLAIN_FRAGMENT_TAG)
+                        .addToBackStack(null)
+                        .commit()
+                    viewModel.setArray(array[0])
+                }
+                else -> Unit
             }
         }
-        return 0
+
+        viewModel.tappedLiveData.observe(this) {
+            selectedChildViewIndex++
+            if (selectedChildViewIndex >= array.size) {
+                selectedChildViewIndex = 0
+            }
+            viewModel.setArray(array[selectedChildViewIndex])
+        }
     }
 }
