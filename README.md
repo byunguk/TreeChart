@@ -9,7 +9,7 @@ When it divides input array, it can divide by index or sum.
 In this example, it divides input array by sum.
 
 
-There are four test cases. If you tab any places, it will recrate the chart with next test set.
+There are four test cases. If you tab any places, it will recreate the chart with next test set.
 
 Main page shows two button, `Hierarchy` and `Plain`
 
